@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from apps.models import User
+from apps.models import User, Test, Student
 from apps.forms import StudentSignUpForm
 
 
@@ -46,3 +46,48 @@ class StudentSignUpViewTest(TestCase):
                                     'surname': "",
                                        'username': "testUser1"})
         self.assertFalse(form.is_valid())
+
+
+class TestListViewTest(TestCase):
+    def setUp(self):
+        #Create a user as student
+        self.student_credentials = {
+            'username': 'test3',
+            'password': 'India@123',
+            'is_student': True}
+        self.user = User.objects.create_user(**self.student_credentials)
+        self.student = Student.objects.create(user=self.user,
+                                              email='test@email.com',
+                                              first_name='test3',
+                                              surname='passtest')
+
+    def test_redirect_if_not_logged_in(self):
+        response = self.client.get(reverse('students:test_list'))
+        self.assertRedirects(response,
+                             '/accounts/login/?next=/students/')
+
+    def test_logged_in_uses_correct_template(self):
+        login = self.client.login(username='test3', password='India@123')
+        response = self.client.get(reverse('students:test_list'))
+
+        # Check our user is logged in
+        self.assertEqual(str(response.context['user']),'test3')
+        # Check that we got a response "success"
+        self.assertEqual(response.status_code, 200)
+
+        # Check we used correct template
+        self.assertTemplateUsed(response,'students/test_list.html')
+
+    def test_only_not_attempted_tests_in_list(self):
+        login = self.client.login(username='test3', password='India@123')
+        response = self.client.get(reverse('students:test_list'))
+
+        # Check our user is logged in
+        self.assertEqual(str(response.context['user']), 'test3')
+        # Check that we got a response "success"
+        self.assertEqual(response.status_code, 200)
+
+        # Check that initially we don't have any test
+        self.assertTrue('tests' in response.context)
+        self.assertEqual(len(response.context['tests']),
+                         Test.objects.all().count())
