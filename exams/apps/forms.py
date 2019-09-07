@@ -60,6 +60,7 @@ class StudentSignUpForm(UserCreationForm):
         student.first_name = self.cleaned_data.get('first_name')
         student.surname = self.cleaned_data.get('surname')
         student.email = self.cleaned_data.get('email')
+        student.save()
         return user
 
 
